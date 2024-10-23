@@ -1,0 +1,147 @@
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torch.optim import SGD
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Step 1
+class SimpleNN(nn.Module):
+    def __init__(self):
+        super().__init__()
+        # Initialize weights and biases 
+        self.w00 = nn.Parameter(torch.rand(1), requires_grad=False)
+        self.b00 = nn.Parameter(torch.rand(1), requires_grad=False)
+
+        self.w01 = nn.Parameter(torch.rand(1), requires_grad=False)
+        self.b01 = nn.Parameter(torch.rand(1), requires_grad=False)
+
+        self.w02 = nn.Parameter(torch.rand(1), requires_grad=False)
+        self.b02 = nn.Parameter(torch.rand(1), requires_grad=False)
+
+        self.w11 = nn.Parameter(torch.rand(1), requires_grad=False)
+        self.w12 = nn.Parameter(torch.rand(1), requires_grad=False)
+        self.w13 = nn.Parameter(torch.rand(1), requires_grad=False)
+
+        self.w20 = nn.Parameter(torch.rand(1), requires_grad=False)
+
+    def forward(self, input):
+        # Hidden layer transformations 
+        input_to_layer_01 = input * self.w00 + self.b00
+        layer_01_output = torch.sigmoid(input_to_layer_01) * self.w11
+
+        input_to_layer_02 = input * self.w01 + self.b01
+        layer_02_output = torch.sigmoid(input_to_layer_02) * self.w12
+
+        input_to_layer_03 = input * self.w02 + self.b02
+        layer_03_output = torch.sigmoid(input_to_layer_03) * self.w13
+
+        # Output layer with Tanh activation
+        output = layer_01_output + layer_02_output + layer_03_output
+        output = torch.tanh(output) * self.w20
+        return output
+
+# Generate input data
+X = torch.linspace(1, 2.5, steps=40)
+simple_nn = SimpleNN()
+Y_initial = simple_nn(X)
+
+# Plot initial predictions
+sns.set(style="whitegrid")
+sns.lineplot(x=X, y=Y_initial.detach(), color='blue', linewidth=3)
+plt.xlabel('X')
+plt.ylabel('Initial Predictions (Y)')
+plt.title('Initial Predictions Before Training')
+plt.show()
+
+# Step 2
+class TrainableNN(nn.Module):
+    def __init__(self):
+        super().__init__()
+        # Initialize weights and biases
+        self.w00 = nn.Parameter(torch.rand(1), requires_grad=True)
+        self.b00 = nn.Parameter(torch.rand(1), requires_grad=True)
+
+        self.w01 = nn.Parameter(torch.rand(1), requires_grad=True)
+        self.b01 = nn.Parameter(torch.rand(1), requires_grad=True)
+
+        self.w02 = nn.Parameter(torch.rand(1), requires_grad=True)
+        self.b02 = nn.Parameter(torch.rand(1), requires_grad=True)
+
+        self.w11 = nn.Parameter(torch.rand(1), requires_grad=True)
+        self.w12 = nn.Parameter(torch.rand(1), requires_grad=True)
+        self.w13 = nn.Parameter(torch.rand(1), requires_grad=True)
+
+        self.w20 = nn.Parameter(torch.rand(1), requires_grad=True)
+
+    def forward(self, input):
+        # Hidden layer transformations with Sigmoid activation
+        input_to_layer_01 = input * self.w00 + self.b00
+        layer_01_output = torch.sigmoid(input_to_layer_01) * self.w11
+
+        input_to_layer_02 = input * self.w01 + self.b01
+        layer_02_output = torch.sigmoid(input_to_layer_02) * self.w12
+
+        input_to_layer_03 = input * self.w02 + self.b02
+        layer_03_output = torch.sigmoid(input_to_layer_03) * self.w13
+
+        # Output layer with Tanh activation
+        output = layer_01_output + layer_02_output + layer_03_output
+        output = torch.tanh(output) * self.w20
+        return output
+
+# Instantiate the trainable network
+trainable_nn = TrainableNN()
+
+# Plot initial predictions before training
+Y_trainable_initial = trainable_nn(X)
+sns.lineplot(x=X, y=Y_trainable_initial.detach(), color='green', linewidth=3)
+plt.xlabel('X')
+plt.ylabel('Initial Trainable Predictions (Y)')
+plt.title('Trainable NN Predictions Before Training')
+plt.show()
+
+# Step 3: 
+optimizer = SGD(trainable_nn.parameters(), lr=0.01)
+loss_fn = nn.MSELoss()
+
+# Training loop for 100 epochs
+for epoch in range(100):
+    total_loss = 0
+    for i in range(len(X)):
+        input_i = X[i]
+        true_output_i = Y_initial[i]
+
+        # Forward pass
+        predicted_output_i = trainable_nn(input_i)
+
+        # Compute the loss
+        loss_value = loss_fn(predicted_output_i, true_output_i)
+
+        # Backward pass and optimization
+        loss_value.backward()
+        optimizer.step()
+        optimizer.zero_grad()
+
+        total_loss += loss_value.item()
+
+    print(f'Epoch: {epoch+1}, Loss: {total_loss:.4f}')
+
+# Step 4: Plot the Predictions After Training
+Y_trainable_final = trainable_nn(X)
+
+# Plot final predictions after training
+sns.lineplot(x=X, y=Y_trainable_final.detach(), color='red', linewidth=3)
+plt.xlabel('X')
+plt.ylabel('Final Predictions (Y)')
+plt.title('Trainable NN Predictions After Training')
+plt.show()
+
+# Plot both before and after training for comparison
+sns.lineplot(x=X, y=Y_trainable_initial.detach(), color='blue', linewidth=3, label='Before Training')
+sns.lineplot(x=X, y=Y_trainable_final.detach(), color='red', linewidth=3, label='After Training')
+plt.xlabel('X')
+plt.ylabel('Predictions (Y)')
+plt.title('Comparison of Predictions Before and After Training')
+plt.legend()
+plt.show()
